@@ -21,8 +21,8 @@ target_include_directories(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/mgcpp/include)
 
 set(BUILD_FLAGS
-    "${CMAKE_CXX_FLAGS} -g -fPIC -Wall -Wextra")
- message("C++ flags = ${BUILD_FLAGS}")
+    "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -fPIC -Wall -Wextra")
+message("C++ flags = ${BUILD_FLAGS}")
 
- set_target_properties(${PROJECT_NAME}
-     PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS}")
+set_target_properties(${PROJECT_NAME}
+    PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS}")

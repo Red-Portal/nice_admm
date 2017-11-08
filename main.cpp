@@ -215,9 +215,9 @@ int main()
     auto end = std::chrono::steady_clock::now();
     auto duration =
         std::chrono::duration_cast<
-            std::chrono::milliseconds>(end - start);
+            std::chrono::microseconds>(end - start);
 
 
     std::cout << "variable init done!" << std::endl;
-    std::cout << "time: " << duration.count() << "ms" << std::endl;
+    std::cout << "time: " << duration.count() << "us" << std::endl;
 }

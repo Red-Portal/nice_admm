@@ -1,0 +1,3 @@
+[submodule "mgcpp"]
+	path = mgcpp
+	url = https://github.com/Red-Portal/mgcpp.git

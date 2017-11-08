@@ -9,12 +9,14 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 find_package(CUDA REQUIRED)
 find_library(LibMGCPP NAMES mgcpp PATHS ${PROJECT_SOURCE_DIR}/mgcpp/lib)
+find_library(LibMGCPPBASE NAMES mgcppbase PATHS ${PROJECT_SOURCE_DIR}/mgcpp/lib)
 
 cuda_add_cublas_to_target(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME}
     ${CUDA_LIBRARIES}
-    ${LibMGCPP})
+    ${LibMGCPP}
+    ${LibMGCPPBASE})
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC

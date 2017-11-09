@@ -8,6 +8,7 @@ set(SOURCE_FILES ${PROJECT_SOURCE_DIR}/main.cpp)
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 find_package(CUDA REQUIRED)
+find_package(Boost REQUIRED)
 find_library(LibMGCPP NAMES mgcpp PATHS ${PROJECT_SOURCE_DIR}/mgcpp/lib)
 find_library(LibMGCPPBASE NAMES mgcppbase PATHS ${PROJECT_SOURCE_DIR}/mgcpp/lib)
 
@@ -21,7 +22,8 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     PUBLIC
     ${CUDA_INCLUDE_DIRS}
-    ${PROJECT_SOURCE_DIR}/mgcpp/third_party/outcome/include
+    ${Boost_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/mgcpp/third_party/boost-outcome/include
     ${PROJECT_SOURCE_DIR}/mgcpp/include)
 
 set(BUILD_FLAGS

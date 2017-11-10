@@ -240,5 +240,5 @@ int main()
         std::chrono::microseconds>(end - start);
 
     std::cout << "loss: " << loss_value << std::endl;
-
+    std::cout << "time: " << duration.count() << "us" << std::endl;
 }

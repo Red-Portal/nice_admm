@@ -1,8 +1,15 @@
+
+#include <cstdlib>
+
+#include <mgcpp/context/thread_guard.hpp>
+#include <mgcpp/device/matrix.hpp>
 #include <mgcpp/device/vector.hpp>
 #include <mgcpp/global/init.hpp>
-#include <mgcpp/context/thread_guard.hpp>
-#include <mgcpp/operations/mult.hpp>
+#include <mgcpp/operations/abs.hpp>
 #include <mgcpp/operations/add.hpp>
+#include <mgcpp/operations/mean.hpp>
+#include <mgcpp/operations/mult.hpp>
+#include <mgcpp/operations/sub.hpp>
 
 #include <iostream>
 #include <cassert>
@@ -183,6 +190,7 @@ int main()
     Q10k.zero();
 
     // Pk = [P2k; P8k; P10k];
+    auto Pk = mgcpp::device_matrix<float>(3, 24, 7.0);
     // Qk = [Q2k; Q8k; Q10k];
 
     // Eb8 = (1).*[1.5, zeros(1,23)]; 
@@ -216,7 +224,21 @@ int main()
         std::chrono::duration_cast<
             std::chrono::microseconds>(end - start);
 
-
     std::cout << "variable init done!" << std::endl;
     std::cout << "time: " << duration.count() << "us" << std::endl;
+
+    using mgcpp::strict::mean;
+    using mgcpp::strict::abs;
+    using mgcpp::strict::sub;
+
+    start = std::chrono::steady_clock::now();
+
+    auto loss_value = mean(abs(sub(abs(P_bus), abs(Pk))));
+
+    end = std::chrono::steady_clock::now();
+    duration = std::chrono::duration_cast<
+        std::chrono::microseconds>(end - start);
+
+    std::cout << "loss: " << loss_value << std::endl;
+
 }

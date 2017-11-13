@@ -2,8 +2,8 @@
 #include <cstdlib>
 
 #include <mgcpp/context/thread_guard.hpp>
-#include <mgcpp/device/matrix.hpp>
-#include <mgcpp/device/vector.hpp>
+#include <mgcpp/matrix/device_matrix.hpp>
+#include <mgcpp/vector/device_vector.hpp>
 #include <mgcpp/global/init.hpp>
 #include <mgcpp/operations/abs.hpp>
 #include <mgcpp/operations/add.hpp>
@@ -189,8 +189,16 @@ int main()
     auto Q10k = mgcpp::device_vector<float>(24);
     Q10k.zero();
 
+    auto Pk = mgcpp::device_matrix<float>(3, 24);
+    Pk.row(0) = P2k ;
+    Pk.row(1) = P8k ;
+    Pk.row(2) = P10k ;
+
+    auto Qk = mgcpp::device_matrix<float>(3, 24);
+    Qk.row(0) = Q2k ;
+    Qk.row(1) = Q8k ;
+    Qk.row(2) = Q10k ;
     // Pk = [P2k; P8k; P10k];
-    auto Pk = mgcpp::device_matrix<float>(3, 24, 7.0);
     // Qk = [Q2k; Q8k; Q10k];
 
     // Eb8 = (1).*[1.5, zeros(1,23)]; 

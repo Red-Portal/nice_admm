@@ -9,11 +9,40 @@
 #include <mgcpp/operations/add.hpp>
 #include <mgcpp/operations/mean.hpp>
 #include <mgcpp/operations/mult.hpp>
+#include <mgcpp/operations/hdmd.hpp>
+#include <mgcpp/operations/sum.hpp>
 #include <mgcpp/operations/sub.hpp>
 
 #include <iostream>
 #include <cassert>
 #include <chrono>
+
+
+float
+LC_DS_target(float alphag,
+             float betag,
+             float gamma,
+             mgcpp::device_vector<float> const& Qg2,
+             mgcpp::device_vector<float> const& Qk,
+             mgcpp::device_vector<float> const& mu2,
+             mgcpp::device_vector<float> const& Pg2,
+             mgcpp::device_vector<float> const& cg)
+{
+    using mgcpp::strict::sum;
+    using mgcpp::strict::sub;
+    using mgcpp::strict::add;
+    using mgcpp::strict::mult;
+    using mgcpp::strict::hdmd;
+
+    auto Cg_diesel2 = add(add(mult(alphag, hdmd(Pg2, Pg2)), mult(betag, Pg2)), cg);
+
+    auto P = sub(
+        sub(mgcpp::device_vector<float>(24).zero(), Pg2),
+        Pk.);
+
+    return sum(Cg_diesel2); // + (1 / (2 * gamma)) * sum();
+
+}
 
 int main()
 {
@@ -189,48 +218,52 @@ int main()
     auto Q10k = mgcpp::device_vector<float>(24);
     Q10k.zero();
 
-    auto Pk = mgcpp::device_matrix<float>(3, 24);
-    Pk.row(0) = P2k ;
-    Pk.row(1) = P8k ;
-    Pk.row(2) = P10k ;
+    auto Pk = mgcpp::device_matrix<float>(24, 3);
+    Pk.column(0) = P2k ;
+    Pk.column(1) = P8k ;
+    Pk.column(2) = P10k ;
 
     auto Qk = mgcpp::device_matrix<float>(3, 24);
-    Qk.row(0) = Q2k ;
+    Qk.colu(0) = Q2k ;
     Qk.row(1) = Q8k ;
     Qk.row(2) = Q10k ;
-    // Pk = [P2k; P8k; P10k];
-    // Qk = [Q2k; Q8k; Q10k];
+// Pk = [P2k; P8k; P10k];
+// Qk = [Q2k; Q8k; Q10k];
 
-    // Eb8 = (1).*[1.5, zeros(1,23)]; 
+// Eb8 = (1).*[1.5, zeros(1,23)]; 
 
-    auto Pgk2 = mgcpp::device_vector<float>(24);
-    Pgk2.zero();
+    auto Eb8 = mgcpp::device_vector<float>(24);
+    Eb8.zero();
+    Eb8.set_value(0, 1.5);
 
-    auto Qgk2 = mgcpp::device_vector<float>(24);
-    Qgk2.zero();
+auto Pgk2 = mgcpp::device_vector<float>(24);
+Pgk2.zero();
 
-    auto Pbk8 = mgcpp::device_vector<float>(24);
-    Pbk8.zero();
+auto Qgk2 = mgcpp::device_vector<float>(24);
+Qgk2.zero();
 
-    auto Qbk8 = mgcpp::device_vector<float>(24);
-    Qbk8.zero();
+auto Pbk8 = mgcpp::device_vector<float>(24);
+Pbk8.zero();
 
-    auto Pgk10 = mgcpp::device_vector<float>(24);
-    Pgk10.zero();
+auto Qbk8 = mgcpp::device_vector<float>(24);
+Qbk8.zero();
 
-    auto P_net= mgcpp::device_matrix<float>(24, 3);
-    P_net.zero();
+auto Pgk10 = mgcpp::device_vector<float>(24);
+Pgk10.zero();
 
-    auto P_bus = mgcpp::device_matrix<float>(3, 24);
-    P_bus.zero();
+auto P_net= mgcpp::device_matrix<float>(24, 3);
+P_net.zero();
 
-    auto P_main = mgcpp::device_vector<float>(24);
-    P_main.zero();
+auto P_bus = mgcpp::device_matrix<float>(3, 24);
+P_bus.zero();
 
-    auto end = std::chrono::steady_clock::now();
-    auto duration =
-        std::chrono::duration_cast<
-            std::chrono::microseconds>(end - start);
+auto P_main = mgcpp::device_vector<float>(24);
+P_main.zero();
+
+auto end = std::chrono::steady_clock::now();
+auto duration =
+    std::chrono::duration_cast<
+    std::chrono::microseconds>(end - start);
 
     std::cout << "variable init done!" << std::endl;
     std::cout << "time: " << duration.count() << "us" << std::endl;
@@ -249,4 +282,9 @@ int main()
 
     std::cout << "loss: " << loss_value << std::endl;
     std::cout << "time: " << duration.count() << "us" << std::endl;
+
+    while() 
+    {
+        
+    }
 }

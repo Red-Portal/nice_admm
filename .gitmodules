@@ -1,3 +1,6 @@
 [submodule "mgcpp"]
 	path = mgcpp
 	url = https://github.com/Red-Portal/mgcpp.git
+[submodule "blaze"]
+	path = blaze
+	url = https://bitbucket.org/blaze-lib/blaze.git

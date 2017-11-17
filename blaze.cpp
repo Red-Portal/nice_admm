@@ -1,5 +1,4 @@
 
-
 #include <blaze/Blaze.h>
 #include <limits>
 
@@ -207,7 +206,7 @@ int main()
 
     start = std::chrono::steady_clock::now();
 
-    float descent_rate = 0.01; 
+    float descent_rate = 1; 
 
     // while(mean(blaze::eval(abs(abs(P_bus) - abs(Pk)))) > 0.001)
     {
@@ -222,19 +221,29 @@ int main()
         std::cout << "LC_LG" << std::endl;
         for(auto i = 0u; i < 27; ++i)
         {                                       
-            auto Cg_diesel2 = alphag * power(Pg2) + betag * Pg2 +  row_vector(24, 1) * cg ;
+            auto Cg_diesel2 = sum(alphag * power(Pg2) + betag * Pg2 +  row_vector(24, 1) * cg);
 
-            auto P = (1/(2 * gamma)) * sum(power(blaze::evaluate((-1 * Pg2) - row(Pk, 0) + mu2)));
-            auto Q = (1/(2 * gamma)) * sum(power(blaze::evaluate((-1 * Qg2) - row(Qk, 0) + lambda2)));
-            LC_DG_loss = sum(blaze::eval(Cg_diesel2)) + P + Q;
+            auto P_inner = blaze::evaluate((-1 * Pg2) - row(Pk, 0) + mu2);
+            auto Q_inner = blaze::evaluate((-1 * Qg2) - row(Qk, 0) + lambda2);
+
+            auto P = (1/(2 * gamma)) * dot(P_inner, P_inner);
+            auto Q = (1/(2 * gamma)) * dot(Q_inner, Q_inner);
+            LC_DG_loss = Cg_diesel2 + P + Q;
             
             // gradient descent
             auto Cg_diesel2_derivative = 2 * alphag * Pg2 + betag_vector;
+            //std::cout << "diesel delta " << Cg_diesel2_derivative << std::endl;
+            //std::cout << "diesel " << Cg_diesel2 << std::endl;
 
-            auto Pg_delta = descent_rate * (Cg_diesel2_derivative - (1 / gamma) * ((-1 * Pg2) - row(Pk, 0) + mu2));
-            auto Qg_delta = descent_rate * (-1 / gamma) * ((-1 * Qg2) - row(Qk, 0) + lambda2);
+            auto Pg_delta = descent_rate * (Cg_diesel2_derivative + (-1 / gamma) * (P_inner));
+            auto Qg_delta = descent_rate * (-1 / gamma) * (Q_inner);
+            //std::cout << "Pg delta " << Pg_delta << std::endl;
+            //std::cout << "Qg delta" << Qg_delta << std::endl;
 
-            //std::cout << "loss: " << LC_DG_loss << std::endl;
+            //std::cout << "Pg2 " << Pg2;
+            //std::cout << "Qg2 " << Qg2;
+
+            std::cout << "loss: " << LC_DG_loss << std::endl;
 
             Pg2 = Pg2 - Pg_delta;
             Qg2 = Qg2 - Qg_delta;

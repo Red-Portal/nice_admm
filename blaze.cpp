@@ -1,6 +1,7 @@
-
 #include <blaze/Blaze.h>
 #include <limits>
+
+#include "optimizer.hpp"
 
 float sum(blaze::DynamicMatrix<float> const& mat)
 {
@@ -45,7 +46,7 @@ int main()
     using row_vector = blaze::DynamicVector<float, blaze::rowVector>; 
 
     auto start = std::chrono::steady_clock::now();
-    
+
     float alphag = 10;
     float betag = 70;
     float cg = 0;
@@ -194,6 +195,7 @@ int main()
 
     auto P_net = blaze::DynamicMatrix<float>(24, 3, 0);
     auto P_bus = blaze::DynamicMatrix<float>(3, 24, 0.1);
+    auto Q_bus = blaze::DynamicMatrix<float>(3, 24, 0.1);
     auto P_main = row_vector(24, 0);
 
     auto end = std::chrono::steady_clock::now();
@@ -206,7 +208,7 @@ int main()
 
     start = std::chrono::steady_clock::now();
 
-    float descent_rate = 1; 
+    float descent_rate = 0.01; 
 
     // while(mean(blaze::eval(abs(abs(P_bus) - abs(Pk)))) > 0.001)
     {
@@ -216,12 +218,16 @@ int main()
         float LC_DG_loss = std::numeric_limits<float>::max();
 
         // cashed constants
-        auto betag_vector = row_vector(24, betag);
+        auto betag_constant = row_vector(24, betag);
+        auto cg_constant = row_vector(24, cg);
+
+        gradient_descent P_optimizer;
+        gradient_descent Q_optimizer;
 
         std::cout << "LC_LG" << std::endl;
-        for(auto i = 0u; i < 27; ++i)
+        for(auto i = 0u; i < 10; ++i)
         {                                       
-            auto Cg_diesel2 = sum(alphag * power(Pg2) + betag * Pg2 +  row_vector(24, 1) * cg);
+            auto Cg_diesel2 = sum(alphag * power(Pg2) + betag * Pg2 + cg_constant);
 
             auto P_inner = blaze::evaluate((-1 * Pg2) - row(Pk, 0) + mu2);
             auto Q_inner = blaze::evaluate((-1 * Qg2) - row(Qk, 0) + lambda2);
@@ -230,25 +236,33 @@ int main()
             auto Q = (1/(2 * gamma)) * dot(Q_inner, Q_inner);
             LC_DG_loss = Cg_diesel2 + P + Q;
             
-            // gradient descent
-            auto Cg_diesel2_derivative = 2 * alphag * Pg2 + betag_vector;
-            //std::cout << "diesel delta " << Cg_diesel2_derivative << std::endl;
-            //std::cout << "diesel " << Cg_diesel2 << std::endl;
+            auto Cg_diesel2_derivative = 2 * alphag * Pg2 + betag_constant;
 
             auto Pg_delta = descent_rate * (Cg_diesel2_derivative + (-1 / gamma) * (P_inner));
             auto Qg_delta = descent_rate * (-1 / gamma) * (Q_inner);
-            //std::cout << "Pg delta " << Pg_delta << std::endl;
-            //std::cout << "Qg delta" << Qg_delta << std::endl;
 
-            //std::cout << "Pg2 " << Pg2;
-            //std::cout << "Qg2 " << Qg2;
+            //std::cout << "diesel delta " << Cg_diesel2_derivative[0] << std::endl;
+            //std::cout << "diesel " << Cg_diesel2 << std::endl;
+
+            //std::cout << "Pg delta " << Pg_delta[0] << std::endl;
+            //std::cout << "Qg delta " << Qg_delta[0] << std::endl;
+
+            //std::cout << "Pg2 " << Pg2[0] << std::endl;
+            //std::cout << "Qg2 " << Qg2[0] << std::endl;
 
             std::cout << "loss: " << LC_DG_loss << std::endl;
 
-            Pg2 = Pg2 - Pg_delta;
-            Qg2 = Qg2 - Qg_delta;
+            Pg2 = Pg2 - P_optimizer(Pg_delta);
+            Qg2 = Qg2 - Q_optimizer(Qg_delta);
 
         }
+
+        auto Pgk2 = Pg2;
+        auto Qgk2 = Qg2;
+
+        row(P_bus, 0) = Pgk2;
+        row(Q_bus, 0) = Qgk2;
+
         end = std::chrono::steady_clock::now();
         duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 

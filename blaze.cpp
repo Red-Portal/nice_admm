@@ -1,49 +1,13 @@
-#include <blaze/Blaze.h>
-#include <limits>
-
 #include "optimizer.hpp"
+#include "LC_DG_update.hpp"
+#include "utility.hpp"
 
-float sum(blaze::DynamicMatrix<float> const& mat)
-{
-    float sum = 0;
-    for(auto i = 0u; i < mat.rows(); ++i)
-    {
-        for(auto j = 0u; j < mat.columns(); ++j)
-        {
-            sum += mat(i, j);
-        }
-    }
-    return sum;
-}
-
-template<typename Vec>
-float sum(Vec const& vec)
-{
-    float sum = 0;
-    for(auto i = 0u; i < vec.size(); ++i)
-    {
-        sum += vec[i];
-    }
-    return sum;
-}
-
-float mean(blaze::DynamicMatrix<float> const& mat)
-{
-    return sum(mat) / (mat.rows() * mat.columns());
-}
-
-template<bool Allign>
-blaze::DynamicVector<float, Allign>
-power(blaze::DynamicVector<float, Allign> const& vec)
-{
-    return vec * vec;
-}
+#include <iostream>
+#include <limits>
 
 
 int main()
 {
-    using column_vector = blaze::DynamicVector<float, blaze::columnVector>; 
-    using row_vector = blaze::DynamicVector<float, blaze::rowVector>; 
 
     auto start = std::chrono::steady_clock::now();
 
@@ -57,7 +21,8 @@ int main()
     float alphab = 1;
     float betab = 0.75;
     float gammab = 0.5;
-    float gamma = 0.75;
+    float gamma = 750;
+    //float ksi_g = 0.001;
     
     auto rho = column_vector{50, 50, 50, 40,
                              40, 40, 50, 60,
@@ -208,57 +173,20 @@ int main()
 
     start = std::chrono::steady_clock::now();
 
-    float descent_rate = 0.01; 
+
+    float descent_rate = 1; 
 
     // while(mean(blaze::eval(abs(abs(P_bus) - abs(Pk)))) > 0.001)
     {
-        auto Pg2 = row_vector(24, 1);
-        auto Qg2 = row_vector(24, 1);
-
-        float LC_DG_loss = std::numeric_limits<float>::max();
-
-        // cashed constants
-        auto betag_constant = row_vector(24, betag);
-        auto cg_constant = row_vector(24, cg);
-
-        gradient_descent P_optimizer;
-        gradient_descent Q_optimizer;
-
-        std::cout << "LC_LG" << std::endl;
-        for(auto i = 0u; i < 10; ++i)
-        {                                       
-            auto Cg_diesel2 = sum(alphag * power(Pg2) + betag * Pg2 + cg_constant);
-
-            auto P_inner = blaze::evaluate((-1 * Pg2) - row(Pk, 0) + mu2);
-            auto Q_inner = blaze::evaluate((-1 * Qg2) - row(Qk, 0) + lambda2);
-
-            auto P = (1/(2 * gamma)) * dot(P_inner, P_inner);
-            auto Q = (1/(2 * gamma)) * dot(Q_inner, Q_inner);
-            LC_DG_loss = Cg_diesel2 + P + Q;
-            
-            auto Cg_diesel2_derivative = 2 * alphag * Pg2 + betag_constant;
-
-            auto Pg_delta = descent_rate * (Cg_diesel2_derivative + (-1 / gamma) * (P_inner));
-            auto Qg_delta = descent_rate * (-1 / gamma) * (Q_inner);
-
-            //std::cout << "diesel delta " << Cg_diesel2_derivative[0] << std::endl;
-            //std::cout << "diesel " << Cg_diesel2 << std::endl;
-
-            //std::cout << "Pg delta " << Pg_delta[0] << std::endl;
-            //std::cout << "Qg delta " << Qg_delta[0] << std::endl;
-
-            //std::cout << "Pg2 " << Pg2[0] << std::endl;
-            //std::cout << "Qg2 " << Qg2[0] << std::endl;
-
-            std::cout << "loss: " << LC_DG_loss << std::endl;
-
-            Pg2 = Pg2 - P_optimizer(Pg_delta);
-            Qg2 = Qg2 - Q_optimizer(Qg_delta);
-
-        }
-
-        auto Pgk2 = Pg2;
-        auto Qgk2 = Qg2;
+        auto [Pgk2, Qgk2] = LC_DG_optimization(descent_rate,
+                                               alphag,
+                                               betag,
+                                               cg,
+                                               gamma,
+                                               Pk,
+                                               Qk,
+                                               mu2,
+                                               lambda2);
 
         row(P_bus, 0) = Pgk2;
         row(Q_bus, 0) = Qgk2;
@@ -266,9 +194,8 @@ int main()
         end = std::chrono::steady_clock::now();
         duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-        std::cout << "loss: " << LC_DG_loss << std::endl;
-        std::cout << "Pg2: " << Pg2 << std::endl;
-        std::cout << "Qg2: " << Qg2 << std::endl;
+        std::cout << "Pg2: " << Pgk2 << std::endl;
+        std::cout << "Qg2: " << Qgk2 << std::endl;
 
         //std::cout << "loss: " << loss << std::endl;
         std::cout << "time: " << duration.count() << "us" << std::endl;

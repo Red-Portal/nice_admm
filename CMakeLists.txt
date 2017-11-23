@@ -4,6 +4,8 @@ project(nice_admm)
 
 # link_directories(${PROJECT_SOURCE_DIR}/mgcpp/lib)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
+
 set(SOURCE_FILES #${PROJECT_SOURCE_DIR}/main.cpp)
     ${PROJECT_SOURCE_DIR}/blaze.cpp)
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
@@ -30,7 +32,7 @@ target_include_directories(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/mgcpp/include)
 
 set(BUILD_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++14 -O3 -fPIC -Wall -Wextra -DBLAZE_USE_CPP_THREADS")
+    "${CMAKE_CXX_FLAGS} -std=c++17 -O3 -fPIC -Wall -Wextra -DBLAZE_USE_CPP_THREADS")
 message("C++ flags = ${BUILD_FLAGS}")
 
 set_target_properties(${PROJECT_NAME}

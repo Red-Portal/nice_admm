@@ -45,6 +45,12 @@ namespace nice
     {
         return vec * vec;
     }
+
+    template< typename VT, bool TF >
+    decltype(auto) norm_l2( const blaze::Vector<VT,TF>& vec )
+    {
+        return sqrt( blaze::dot( ~vec, ~vec ) );
+    }
 }
 
 #endif

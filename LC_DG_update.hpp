@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include "utility.hpp"
+#include "gradient_projection.hpp"
 
 inline std::tuple<row_vector, row_vector>
 LC_DG_optimization(float descent_rate,
@@ -28,10 +29,24 @@ LC_DG_optimization(float descent_rate,
     auto betag_constant = row_vector(24, betag);
     auto cg_constant = row_vector(24, cg);
 
-    gradient_descent P_optimizer;
-    gradient_descent Q_optimizer;
-
     std::cout << "LC_LG" << std::endl;
+
+    auto function = [&](nice::row_vector const& Pg2)
+        {
+
+        };
+
+    auto d_function = []()
+        {
+            
+        };
+
+    auto best_lambda = []()
+        {
+        
+        };
+
+
     for(auto i = 0u; i < 27; ++i)
     {                                       
         auto Cg_diesel2 = nice::sum(alphag * nice::power(Pg2) + betag * Pg2 + cg_constant);

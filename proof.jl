@@ -1,16 +1,18 @@
 
-function f(input)
-    x1, x2, x3, x4 = input
-    result = (x1 - 1).^2 + (x2 - 2).^2 + (x3 - 3).^2 + (x4 - 4).^2
+function f(x)
+    result = (x[1] - 1).^2 +
+        (x[2] - 2).^2  +
+        (x[3] - 3).^2  +
+        (x[4] - 4).^2
+
     return result
 end
 
-function d_f(input)
-    x1, x2, x3, x4 = input
-    dx1 = 2 * x1 - 2 
-    dx2 = 2 * x2 - 4
-    dx3 = 2 * x3 - 6
-    dx4 = 2 * x4 - 8
+function d_f(x)
+    dx1 = 2 * x[1] - 2 
+    dx2 = 2 * x[2] - 4
+    dx3 = 2 * x[3] - 6
+    dx4 = 2 * x[4] - 8
     return [dx1 dx2 dx3 dx4]
 end
 
@@ -20,17 +22,18 @@ function projection_direction(N::Matrix{Float64})
     return id - N' * inv(N * N') * N
 end
 
+
 function max_mu(A, b, x, projection)
     mu = (- A*x' + b) ./ (A * projection')
-    #println(mu)
+
     active_mu = filter(elem -> elem > 0, mu)
 
     if(length(active_mu) == 0)
         return typemax(Float32)
     elseif(length(active_mu) == 1)
-        return active_mu[1]
+        return active_mu[1] - eps(Float32)
     else
-        return minimum(active_mu)
+        return minimum(active_mu) - eps(Float32)
     end
 end
 
@@ -80,9 +83,9 @@ function main()
                0;
                0] 
 
-    max_iter = 100
+    max_iter = 1000
     iteration = 0
-    rate = 0.1
+    rate = 0.01
     point = starting_point
     objective = typemax(Float32)
     delta = typemax(Float32)
@@ -91,15 +94,19 @@ function main()
         delta = d_f(point)
         objective = f(point)
         
-        println("objective: ", objective)
+        #println("objective: ", objective)
 
         next_point = point - rate .* delta
         tight = active_constraints(N, b, next_point)
+
+        #println("next point: ", next_point)
 
         if(length(tight) == 0)
             point = next_point
         else
             s = -delta * projection_direction(tight)'
+            #println("s: ", s)
+            #println("x: ", point)
 
             if(norm(s, 2) < 1e-10)
                 break
@@ -109,7 +116,16 @@ function main()
             max_mu_value = max_mu(N, b, point, s)
 
             mu = min(best_mu_value, max_mu_value)
-            point = point + mu * s
+            update = mu * s
+
+            if(norm(update, 2) < 1e-10)
+                break
+            end
+
+            #println("best: ", best_mu_value)
+            #println("max: ", max_mu_value)
+
+            point = point + update
         end
         iteration += 1
     end

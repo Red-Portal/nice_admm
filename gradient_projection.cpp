@@ -1,56 +1,7 @@
-
-#include <iostream>
-#include <algorithm>
-#include <chrono>
 #include <vector>
 #include <limits>
-#include <cmath>
 
 #include "gradient_projection.hpp"
-
-
-float
-function(nice::row_vector const& x) 
-{
-    float first = x[0] - 1;
-    float second = x[1] - 2;
-    float third = x[2] - 3;
-    float fourth = x[3] - 4;
-
-    return first * first + second * second + third * third + fourth * fourth;
-}
-
-nice::row_vector
-d_function(row_vector const& x) 
-{
-    auto gradient = row_vector(4);
-    gradient[0] = 2 * x[0] - 2;
-    gradient[1] = 2 * x[1] - 4;
-    gradient[2] = 2 * x[2] - 6;
-    gradient[3] = 2 * x[3] - 8;
-    return gradient;
-}
-
-float
-best_lambda(row_vector const& x,
-            row_vector const& s) 
-{
-    auto dividend = s[0] * (1 - s[0])
-        + s[1] * (2 - s[1])
-        + s[2] * (3 - s[2])
-        + s[3] * (4 - s[3]);
-
-    auto divisor = s[0] * s[0]
-        + s[1] * s[1]
-        + s[2] * s[2]
-        + s[3] * s[3];
-    
-    auto result = dividend / divisor;
-    if(result >= 0)
-        return result;
-    else
-        return std::numeric_limits<float>::max();
-}
 
 namespace nice
 {
@@ -63,51 +14,141 @@ namespace nice
 
     float
     max_lambda(matrix const& A,
-               matrix const& b,
+               column_vector const& b,
                row_vector const& x,
                row_vector const& s)
     {
-        auto lambdas = ((-1) * A * trans(x) + b) / (A * trans(s));
+        auto lambdas = (((-1) * A * trans(x)) + b) / (A * trans(s));
 
         auto valid_lambdas = std::vector<float>();
         valid_lambdas.reserve(lambdas.size());
 
-        for(auto i : lambdas)
+        for(auto i : blaze::evaluate(lambdas))
         {
-            if(i < 0)
+            if(i > 0)
                 valid_lambdas.push_back(i);
         }
 
         if(valid_lambdas.size() == 0)
             return std::numeric_limits<float>::max();
         else if(valid_lambdas.size() == 1)
-            return valid_lambdas[0];
+        {
+            float max_lambda_result = valid_lambdas[0];
+            return max_lambda_result - std::numeric_limits<float>::epsilon();
+        }
         else
-            return *std::min_element(valid_lambdas.begin(),
-                                     valid_lambdas.end());
+        {
+            float max_lambda_result = *std::min_element(valid_lambdas.begin(),
+                                                        valid_lambdas.end());
+            return max_lambda_result - std::numeric_limits<float>::epsilon();
+        }
     }
+
+    std::optional<matrix>
+    active_constraints(matrix const& A,
+                       column_vector const& b,
+                       row_vector const& x)
+    {
+        auto status = blaze::evaluate(A * trans(x) - b);
+
+        if (std::all_of(status.begin(), status.end(),
+                        [](float elem)
+                        {
+                            return elem <= 0;
+                        }))
+            return {};
+
+        auto active_set = matrix();
+        active_set.reserve(A.capacity());
+
+        for(size_t i = 0u; i < status.size(); ++i)
+        {
+            if(status[i] > 0)
+            {
+                active_set.resize(active_set.rows() + 1, A.columns());
+                blaze::row(active_set, active_set.rows() - 1) = blaze::row(A, i);
+            }
+        }
+        return active_set;
+    }
+
 }
+
+float
+function(nice::row_vector const& x) 
+{
+    float first = x[0] - 1;
+    float second = x[1] - 2;
+    float third = x[2] - 3;
+    float fourth = x[3] - 4;
+
+    return first * first
+        + second * second
+        + third * third
+        + fourth * fourth;
+}
+
+nice::row_vector
+d_function(nice::row_vector const& x) 
+{
+    auto gradient = nice::row_vector(4);
+    gradient[0] = 2 * x[0] - 2;
+    gradient[1] = 2 * x[1] - 4;
+    gradient[2] = 2 * x[2] - 6;
+    gradient[3] = 2 * x[3] - 8;
+    return gradient;
+}
+
+float
+best_lambda(nice::row_vector const& x,
+            nice::row_vector const& s) 
+{
+    auto dividend = s[0] * (1 - x[0])
+        + s[1] * (2 - x[1])
+        + s[2] * (3 - x[2])
+        + s[3] * (4 - x[3]);
+
+    auto divisor = s[0] * s[0]
+        + s[1] * s[1]
+        + s[2] * s[2]
+        + s[3] * s[3];
+
+    auto result = dividend / divisor;
+    if(result >= 0)
+        return result;
+    else
+        return std::numeric_limits<float>::max();
+}
+
 
 int main()
 {
-    auto const N = matrix{{1, 1, 1, 1},
-                          {3, 3, 2, 1},
-                          {-1, 0, 0, 0},
-                          {0, -1, 0, 0},
-                          {0, 0, -1, 0},
-                          {0, 0, 0, -1}};
+    std::ios::sync_with_stdio(false);
 
-    auto const b = column_vector{5, 10, 0, 0, 0, 0};
+    auto starting_point = nice::row_vector{0., 0., 0., 0.};
 
-    auto in = blaze::DynamicMatrix<float>{{1, 1, 1, 1},
-                                          {-1, 0, 0, 0}};
+    auto const A = nice::matrix{{1, 1, 1, 1},
+                                {3, 3, 2, 1},
+                                {-1, 0, 0, 0},
+                                {0, -1, 0, 0},
+                                {0, 0, -1, 0},
+                                {0, 0, 0, -1}};
 
-    auto start = std::chrono::steady_clock::now();
-    auto result = nice::projection_matrix(in);
-    auto end = std::chrono::steady_clock::now();
+    auto const b = nice::column_vector{5,
+                                       10,
+                                       0,
+                                       0,
+                                       0,
+                                       0};
 
-    std::cout << result << std::endl;
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-
-    std::cout << "time: " << duration.count() << "us" << std::endl;
+    std::cout << nice::gradient_projection(function,
+                                           d_function,
+                                           best_lambda,
+                                           0.02,
+                                           500,
+                                           starting_point,
+                                           A,
+                                           b,
+                                           false,
+                                           0.00001) << std::endl;
 }

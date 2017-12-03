@@ -10,7 +10,8 @@ namespace nice
     using column_vector = blaze::DynamicVector<float, blaze::columnVector>; 
     using row_vector = blaze::DynamicVector<float, blaze::rowVector>; 
 
-    float sum(blaze::DynamicMatrix<float> const& mat)
+    inline float
+    sum(blaze::DynamicMatrix<float> const& mat)
     {
         float sum = 0;
         for(auto i = 0u; i < mat.rows(); ++i)
@@ -24,7 +25,8 @@ namespace nice
     }
 
     template<typename Vec>
-    float sum(Vec const& vec)
+    inline float
+    sum(Vec const& vec)
     {
         float sum = 0;
         for(auto i = 0u; i < vec.size(); ++i)
@@ -34,20 +36,22 @@ namespace nice
         return sum;
     }
 
-    float mean(blaze::DynamicMatrix<float> const& mat)
+    inline float
+    mean(blaze::DynamicMatrix<float> const& mat)
     {
         return sum(mat) / (mat.rows() * mat.columns());
     }
 
     template<bool Allign>
-    blaze::DynamicVector<float, Allign>
+    inline blaze::DynamicVector<float, Allign>
     power(blaze::DynamicVector<float, Allign> const& vec)
     {
         return vec * vec;
     }
 
     template< typename VT, bool TF >
-    decltype(auto) norm_l2( const blaze::Vector<VT,TF>& vec )
+    inline decltype(auto)
+    norm_l2( const blaze::Vector<VT,TF>& vec )
     {
         return sqrt( blaze::dot( ~vec, ~vec ) );
     }

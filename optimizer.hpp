@@ -1,3 +1,4 @@
+
 #ifndef _NICE_ADMM_OPTIMIZER_HPP_
 #define _NICE_ADMM_OPTIMIZER_HPP_
 

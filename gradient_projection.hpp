@@ -12,22 +12,19 @@
 
 namespace nice
 {
-    namespace
-    {
-        blaze::DynamicMatrix<float>
-        projection_matrix(matrix const& N);
+    blaze::DynamicMatrix<float>
+    projection_matrix(matrix const& N);
 
-        std::optional<matrix>
-        active_constraints(matrix const& A,
-                           column_vector const& b,
-                           row_vector const& x);
+    std::optional<matrix>
+    active_constraints(matrix const& A,
+                       column_vector const& b,
+                       row_vector const& x);
 
-        float
-        max_lambda(matrix const& A,
-                   column_vector const& b,
-                   row_vector const& x,
-                   row_vector const& s);
-    }
+    float
+    max_lambda(matrix const& A,
+               column_vector const& b,
+               row_vector const& x,
+               row_vector const& s);
 
     template<typename F, typename d_F, typename L_F>
     inline nice::row_vector

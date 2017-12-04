@@ -36,7 +36,7 @@ target_include_directories(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/mgcpp/include)
 
 set(BUILD_FLAGS
-    "${CMAKE_CXX_FLAGS} -g -std=c++17 -Wall -Wextra -DBLAZE_USE_CPP_THREADS")
+    "${CMAKE_CXX_FLAGS} -O3 -std=c++17 -Wall -Wextra -DBLAZE_USE_CPP_THREADS")
 message("C++ flags = ${BUILD_FLAGS}")
 
 set_target_properties(${PROJECT_NAME}

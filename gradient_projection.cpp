@@ -54,7 +54,7 @@ namespace nice
         if (std::all_of(status.begin(), status.end(),
                         [](float elem)
                         {
-                            return elem <= 0;
+                            return elem < 0;
                         }))
             return {};
 
@@ -71,10 +71,9 @@ namespace nice
         }
         return active_set;
     }
-
 }
-/*
-  float
+
+/*float
   function(nice::row_vector const& x) 
   {
   float first = x[0] - 1;
@@ -145,10 +144,10 @@ namespace nice
   d_function,
   best_lambda,
   0.02,
-  500,
+  100,
   starting_point,
   A,
   b,
-  false,
+  true,
   0.00001) << std::endl;
   }*/

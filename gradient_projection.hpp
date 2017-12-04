@@ -41,7 +41,6 @@ namespace nice
     {
         auto start = std::chrono::steady_clock::now();
 
-        auto max_iter = 500u;
         auto iteration = 0u;
         auto point = starting_point;
 
@@ -49,6 +48,9 @@ namespace nice
         {
             auto objective = function(point);
             auto gradient = d_function(point);
+
+            if(nice::norm_l2(gradient) < kkt_threshold)
+                break;
 
             if(verbose)
             {
@@ -63,9 +65,11 @@ namespace nice
             if(!active)
             {
                 point = next_point;
+                std::cout << "gradient: " <<  point << std::endl;
             }
             else
             {
+                std::cout << "fuck" << std::endl;
                 auto P = nice::projection_matrix(active.value());
                 auto s = (-1) * gradient * blaze::trans(P);
 
@@ -80,6 +84,7 @@ namespace nice
                     break;
 
                 point = point + update;
+                std::cout << "projected grad: " << point << std::endl;
             }
         }
 

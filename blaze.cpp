@@ -22,7 +22,7 @@ int main()
     float alphab = 1;
     float betab = 0.75;
     float gammab = 0.5;
-    float gamma = 750;
+    float gamma = 0.75;
     //float ksi_g = 0.001;
     
     auto rho = nice::column_vector{50, 50, 50, 40,
@@ -132,6 +132,8 @@ int main()
     auto Qg14 = 0.01f * Pg14;
     auto Qg15 = 0.01f * Pg15;
 
+    //blaze::Rand<nice::row_vector> randomizer{};
+
     auto P2k = nice::row_vector(24, 0);
     auto Q2k = nice::row_vector(24, 0);
     auto P8k = nice::row_vector(24, 0);
@@ -180,7 +182,7 @@ int main()
     // while(mean(blaze::eval(abs(abs(P_bus) - abs(Pk)))) > 0.001)
     {
         auto [Pgk2, Qgk2] = LC_DG_optimization(descent_rate,
-                                               100,
+                                               2000,
                                                alphag,
                                                betag,
                                                cg,
@@ -189,7 +191,8 @@ int main()
                                                Qk,
                                                mu2,
                                                lambda2,
-                                               1e-10);
+                                               1e-7,
+                                               false);
 
         row(P_bus, 0) = Pgk2;
         row(Q_bus, 0) = Qgk2;

@@ -1,4 +1,3 @@
-
 #include <optional>
 
 #include "gradient_projection.hpp"
@@ -14,20 +13,28 @@ Pg2_update(float descent_rate,
            nice::matrix const& A,
            nice::column_vector const& b)
 {
-    auto Pg2_gradient = d_Pg2(Pg2);
-    auto next_Pg2 = descent_rate * Pg2_gradient;
+    auto Pg2_gradient = blaze::evaluate((-1) * d_Pg2(Pg2));
+    auto next_Pg2 = blaze::evaluate(Pg2 + descent_rate * Pg2_gradient);
 
     auto active = nice::active_constraints(A, b, next_Pg2);
 
     if(!active)
+    {
         return next_Pg2;
+    }
     else
     {
         auto P = nice::projection_matrix(active.value());
-        auto s = (-1) * Pg2_gradient * blaze::trans(P);
+        auto s = Pg2_gradient * blaze::trans(P);
 
         if(nice::norm_l2(s) < kkt_threshold)
-            return {};
+        {
+            auto max_rescale = nice::max_lambda(A, b, Pg2, Pg2_gradient);
+            if(max_rescale < kkt_threshold)
+                return {};
+            else
+                return Pg2 + max_rescale * Pg2_gradient;
+        }
 
         float best = best_lambda(Pg2, s);
         float max = nice::max_lambda(A, b, Pg2, s);
@@ -36,7 +43,7 @@ Pg2_update(float descent_rate,
         if(nice::norm_l2(update) < kkt_threshold)
             return {};
 
-        return update;
+        return Pg2 + update;
     }
 }
 
@@ -52,7 +59,7 @@ LC_DG_constraints()
     }
 
     for(auto i = 0u; i < 24u; ++i)
-        constraints(i + 23, i) = 1; 
+        constraints(i + 23, i) = -1; 
  
     auto constraint_range = nice::column_vector(23 + 24, 0);
 
@@ -78,6 +85,9 @@ LC_DG_optimization(float descent_rate,
 {
     bool Pg2_found = false;
     bool Qg2_found = false;
+
+    size_t Pg2_iter_count = 0;
+    size_t Qg2_iter_count = 0;
 
     auto Pg2 = nice::row_vector(24, 1);
     auto Qg2 = nice::row_vector(24, 1);
@@ -127,7 +137,8 @@ LC_DG_optimization(float descent_rate,
 
     float objective_value = 0;
 
-    for(auto i = 0u; i < max_iteration; ++i)
+    auto i = 0u;
+    for(i = 0u; i < max_iteration; ++i)
     {                                       
         if(verbose)
             objective_value = objective(Pg2, Qg2);
@@ -137,9 +148,8 @@ LC_DG_optimization(float descent_rate,
 
         if(!Qg2_found)
         {
+            ++Qg2_iter_count;
             auto Qg2_gradient = d_Qg2(Qg2);
-
-            std::cout << "delta Qg2: "<< Qg2_gradient;
 
             if(nice::norm_l2(Qg2_gradient) < kkt_threshold)
                 Qg2_found = true;
@@ -149,7 +159,8 @@ LC_DG_optimization(float descent_rate,
 
         if(!Pg2_found)
         {
-            auto result = Pg2_update(descent_rate,
+            ++Pg2_iter_count;
+            auto result = Pg2_update(0.1 * descent_rate,
                                      kkt_threshold,
                                      Pg2,
                                      d_Pg2,
@@ -162,13 +173,19 @@ LC_DG_optimization(float descent_rate,
                 Pg2_found = true;
         }
 
+        //std::cout << "current Pg2: "<< Pg2[0] << std::endl;
+        //std::cout << "current Qg2: "<< Qg2[0] << std::endl;
+
         if(verbose)
         {
             std::cout << "iteration: " << i + 1
-                      << " objective: " << objective_value
+                      << " optimal value: " << objective_value
                       << '\n';
         }
     }
 
+    std::cout << "Pg2 iteration count: " << Pg2_iter_count << std::endl;
+    std::cout << "Qg2 iteration count: " << Qg2_iter_count << std::endl;
+    
     return {Pg2, Qg2};
 } 

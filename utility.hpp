@@ -7,6 +7,7 @@
 namespace nice
 {
     using matrix = blaze::DynamicMatrix<float>;
+    using sparse_matrix = blaze::CompressedMatrix<float>;
     using column_vector = blaze::DynamicVector<float, blaze::columnVector>; 
     using row_vector = blaze::DynamicVector<float, blaze::rowVector>; 
 

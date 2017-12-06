@@ -1,6 +1,6 @@
-
 #include "optimizer.hpp"
 #include "LC_DG_update.hpp"
+#include "LC_DS_update.hpp"
 #include "utility.hpp"
 
 #include <iostream>
@@ -134,7 +134,7 @@ int main()
 
     //blaze::Rand<nice::row_vector> randomizer{};
 
-    auto P2k = nice::row_vector(24, 0);
+    auto P2k = nice::row_vector(24, -1);
     auto Q2k = nice::row_vector(24, 0);
     auto P8k = nice::row_vector(24, 0);
     auto Q8k = nice::row_vector(24, 0);
@@ -177,22 +177,25 @@ int main()
     start = std::chrono::steady_clock::now();
 
 
-    float descent_rate = 0.1; 
+    float descent_rate = 0.2;
 
     // while(mean(blaze::eval(abs(abs(P_bus) - abs(Pk)))) > 0.001)
     {
-        auto [Pgk2, Qgk2] = LC_DG_optimization(descent_rate,
-                                               2000,
-                                               alphag,
-                                               betag,
-                                               cg,
-                                               gamma,
-                                               Pk,
-                                               Qk,
-                                               mu2,
-                                               lambda2,
-                                               1e-7,
-                                               false);
+        auto [Pgk2, Qgk2] =
+            LC_DG_optimization(descent_rate,
+                               2000,
+                               alphag,
+                               betag,
+                               cg,
+                               gamma,
+                               Pg2_max,
+                               Sg2,
+                               Pk,
+                               Qk,
+                               mu2,
+                               lambda2,
+                               std::numeric_limits<float>::epsilon(),
+                               false);
 
         row(P_bus, 0) = Pgk2;
         row(Q_bus, 0) = Qgk2;
@@ -203,7 +206,22 @@ int main()
         std::cout << "Pg2: " << Pgk2 << std::endl;
         std::cout << "Qg2: " << Qgk2 << std::endl;
 
-        //std::cout << "loss: " << loss << std::endl;
+
+        // auto [Pbk8, Qbk8] =
+        //     LC_DG_optimization(descent_rate,
+        //                        2000,
+        //                        gamma,
+        //                        gammab,
+        //                        Pk,
+        //                        Qk,
+        //                        mu8,
+        //                        lambda8,
+        //                        std::numeric_limits<float>::epsilon(),
+        //                        true);
+
+        // row(P_bus, 1) = Pgk8;
+        // row(Q_bus, 1) = Qgk8;
+
         std::cout << "time: " << duration.count() << "us" << std::endl;
     }
 }

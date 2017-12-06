@@ -10,7 +10,7 @@ Pg2_update(float descent_rate,
            nice::row_vector const& Pg2,
            d_F& d_Pg2,
            bestL& best_lambda,
-           nice::matrix const& A,
+           nice::sparse_matrix const& A,
            nice::column_vector const& b)
 {
     auto Pg2_gradient = blaze::evaluate((-1) * d_Pg2(Pg2));
@@ -25,7 +25,9 @@ Pg2_update(float descent_rate,
     else
     {
         auto P = nice::projection_matrix(active.value());
+        //std::cout << "P rows: "<< P.rows() << " cols: "<< P.columns() << std::endl;
         auto s = Pg2_gradient * blaze::trans(P);
+        std::cout << "P: "<< s << std::endl;
 
         if(nice::norm_l2(s) < kkt_threshold)
         {
@@ -47,10 +49,11 @@ Pg2_update(float descent_rate,
     }
 }
 
-std::tuple<nice::matrix, nice::column_vector>
-LC_DG_constraints()
+std::tuple<nice::sparse_matrix, nice::column_vector>
+LC_DG_constraints(float Pg2_max)
 {
-    auto constraints = nice::matrix(23 + 24, 24, 0);
+    auto row_size = 23 * 2 + 24 * 2;
+    auto constraints = nice::sparse_matrix(row_size, 24, row_size * 2);
 
     for(auto i = 0u; i < 23u; ++i)
     {
@@ -58,13 +61,25 @@ LC_DG_constraints()
         constraints(i, i + 1) = -1;
     }
 
-    for(auto i = 0u; i < 24u; ++i)
-        constraints(i + 23, i) = -1; 
- 
-    auto constraint_range = nice::column_vector(23 + 24, 0);
+    for(auto i = 23u; i < 46u; ++i)
+    {
+        constraints(i, i - 23) = -1;
+        constraints(i, i - 22) = 1;
+    }
 
-    for(auto i = 0u; i < 23; ++i)
+    for(auto i = 0u; i < 24u; ++i)
+        constraints(i + 46, i) = -1; 
+
+    for(auto i = 0u; i < 24u; ++i)
+        constraints(i + 70, i) = +1; 
+
+    auto constraint_range = nice::column_vector(row_size, 0);
+
+    for(auto i = 0u; i < 46; ++i)
         constraint_range[i] = 1.8;
+
+    for(auto i = 70; i < 94; ++i)
+        constraint_range[i] = Pg2_max; // Pg2 max!
 
     return {constraints, constraint_range};
 }
@@ -76,6 +91,8 @@ LC_DG_optimization(float descent_rate,
                    float betag,
                    float cg,
                    float gamma,
+                   float Pg2_max,
+                   float Sg2,
                    blaze::DynamicMatrix<float> const& Pk,
                    blaze::DynamicMatrix<float> const& Qk,
                    nice::row_vector const& mu2,
@@ -133,7 +150,8 @@ LC_DG_optimization(float descent_rate,
             return dividend / dividor;
         };
 
-    auto [A, b] = LC_DG_constraints();
+    static auto constraints = LC_DG_constraints(Pg2_max);
+    auto [A, b] = constraints;
 
     float objective_value = 0;
 

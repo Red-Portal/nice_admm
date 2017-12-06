@@ -6,14 +6,15 @@
 namespace nice
 {
     blaze::DynamicMatrix<float>
-    projection_matrix(matrix const& N)
+    projection_matrix(sparse_matrix const& N)
     {
-        auto id = blaze::IdentityMatrix<float>(N.rows());
-        return id - (trans(N) * inv(N * trans(N)) * N);
+        auto dense_N = matrix(N);
+        auto id = blaze::IdentityMatrix<float>(dense_N.columns());
+        return id - (trans(dense_N) * inv(dense_N * trans(dense_N)) * dense_N);
     }
 
     float
-    max_lambda(matrix const& A,
+    max_lambda(sparse_matrix const& A,
                column_vector const& b,
                row_vector const& x,
                row_vector const& s)
@@ -44,8 +45,8 @@ namespace nice
         }
     }
 
-    std::optional<matrix>
-    active_constraints(matrix const& A,
+    std::optional<sparse_matrix>
+    active_constraints(sparse_matrix const& A,
                        column_vector const& b,
                        row_vector const& x)
     {
@@ -54,12 +55,11 @@ namespace nice
         if (std::all_of(status.begin(), status.end(),
                         [](float elem)
                         {
-                            return elem < 0;
+                            return elem <= 0;
                         }))
             return {};
 
-        auto active_set = matrix();
-        active_set.reserve(A.capacity());
+        auto active_set = sparse_matrix(0, 0, A.capacity());
 
         for(size_t i = 0u; i < status.size(); ++i)
         {

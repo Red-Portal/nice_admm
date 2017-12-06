@@ -13,15 +13,15 @@
 namespace nice
 {
     blaze::DynamicMatrix<float>
-    projection_matrix(matrix const& N);
+    projection_matrix(sparse_matrix const& N);
 
-    std::optional<matrix>
-    active_constraints(matrix const& A,
+    std::optional<sparse_matrix>
+    active_constraints(sparse_matrix const& A,
                        column_vector const& b,
                        row_vector const& x);
 
     float
-    max_lambda(matrix const& A,
+    max_lambda(sparse_matrix const& A,
                column_vector const& b,
                row_vector const& x,
                row_vector const& s);

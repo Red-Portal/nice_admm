@@ -1,6 +1,6 @@
 
-#ifndef _LC_DG_UPDATE_HPP_
-#define _LC_DG_UPDATE_HPP_
+#ifndef _OPTIMIZATION_PHASES_HPP_
+#define _OPTIMIZATION_PHASES_HPP_
 
 #include <utility>
 #include <iostream>
@@ -23,5 +23,17 @@ LC_DG_optimization(float descent_rate,
                    nice::row_vector const& lambda2,
                    float kkt_threshold = 0.0001,
                    bool verbose = true);
+
+std::tuple<nice::row_vector, nice::row_vector>
+LC_DS_first_optimization(float descent_rate,
+                         size_t max_iteration,
+                         float gamma,
+                         float gammab,
+                         blaze::DynamicMatrix<float> const& Pk,
+                         blaze::DynamicMatrix<float> const& Qk,
+                         nice::row_vector const& mu8,
+                         nice::row_vector const& lambda8,
+                         float kkt_threshold = 0.0001,
+                         bool verbose = true);
 
 #endif

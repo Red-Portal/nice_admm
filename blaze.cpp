@@ -1,7 +1,6 @@
-#include "optimizer.hpp"
-#include "LC_DG_update.hpp"
-#include "LC_DS_update.hpp"
+
 #include "utility.hpp"
+#include "optimization_phases.hpp"
 
 #include <iostream>
 #include <chrono>
@@ -9,7 +8,6 @@
 
 int main()
 {
-
     auto start = std::chrono::steady_clock::now();
 
     float alphag = 10;
@@ -207,20 +205,20 @@ int main()
         std::cout << "Qg2: " << Qgk2 << std::endl;
 
 
-        // auto [Pbk8, Qbk8] =
-        //     LC_DG_optimization(descent_rate,
-        //                        2000,
-        //                        gamma,
-        //                        gammab,
-        //                        Pk,
-        //                        Qk,
-        //                        mu8,
-        //                        lambda8,
-        //                        std::numeric_limits<float>::epsilon(),
-        //                        true);
+        auto [Pbk8, Qbk8] =
+            LC_DS_first_optimization(descent_rate,
+                                     2000,
+                                     gamma,
+                                     gammab,
+                                     Pk,
+                                     Qk,
+                                     mu8,
+                                     lambda8,
+                                     std::numeric_limits<float>::epsilon(),
+                                     true);
 
-        // row(P_bus, 1) = Pgk8;
-        // row(Q_bus, 1) = Qgk8;
+        row(P_bus, 1) = Pgk8;
+        row(Q_bus, 1) = Qgk8;
 
         std::cout << "time: " << duration.count() << "us" << std::endl;
     }

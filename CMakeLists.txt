@@ -9,12 +9,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 set(SOURCE_FILES #${PROJECT_SOURCE_DIR}/main.cpp)
     ${PROJECT_SOURCE_DIR}/blaze.cpp
     ${PROJECT_SOURCE_DIR}/LC_DG_update.cpp
+    ${PROJECT_SOURCE_DIR}/LC_DS_update.cpp
     ${PROJECT_SOURCE_DIR}/gradient_projection.cpp)
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
 find_package(LAPACK REQUIRED)
+find_package(BLAS REQUIRED)
 find_package(CUDA REQUIRED)
-find_package(Boost REQUIRED)
+#find_package(Boost REQUIRED)
+find_package(Threads REQUIRED)
 find_library(LibMGCPP NAMES mgcpp PATHS ${PROJECT_SOURCE_DIR}/mgcpp/lib)
 find_library(LibMGCPPBASE NAMES mgcppbase PATHS ${PROJECT_SOURCE_DIR}/mgcpp/lib)
 
@@ -22,6 +25,7 @@ cuda_add_cublas_to_target(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME}
     ${LAPACK_LIBRARIES}
+    ${BLAS_LIBRARIES}
     ${CUDA_LIBRARIES}
     ${LibMGCPP}
     ${LibMGCPPBASE})

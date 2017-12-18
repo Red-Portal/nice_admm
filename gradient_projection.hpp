@@ -5,6 +5,7 @@
 #include <iostream>
 #include <algorithm>
 #include <chrono>
+#include <functional>
 #include <optional>
 #include <cmath>
 
@@ -12,32 +13,61 @@
 
 namespace nice
 {
-    blaze::DynamicMatrix<float>
-    projection_matrix(sparse_matrix const& N);
+    inline blaze::DynamicMatrix<float>
+    tangent_subspace(nice::matrix const& N)
+    {
+        return  inv(N * trans(N)) * N;
+    }
 
-    std::optional<sparse_matrix>
-    active_constraints(sparse_matrix const& A,
-                       column_vector const& b,
-                       row_vector const& x);
+    inline float
+    compute_alpha(float rate,
+                  float objective_value, 
+                  nice::row_vector const& s,
+                  nice::row_vector const& gradient)
+    {
+        return ((-1) * rate * objective_value) / blaze::dot(gradient, s);
+    }
 
-    float
-    max_lambda(sparse_matrix const& A,
-               column_vector const& b,
-               row_vector const& x,
-               row_vector const& s);
+    inline float
+    is_parallel(nice::row_vector const& x,
+                nice::row_vector const& y)
+    {
+        auto product = blaze::dot(x, y);
+        return blaze::dot(x, x) * blaze::dot(y, y) - product * product;
+    }
 
-    template<typename F, typename d_F, typename L_F>
+    inline nice::matrix
+    projection_matrix(nice::sparse_matrix const& N,
+                      nice::matrix const& tangent)
+    {
+        auto id = blaze::IdentityMatrix<float, blaze::rowMajor>(N.columns());
+        return id - blaze::trans(N) * tangent;
+    }
+
+    using nonlinear_set =
+        std::tuple<std::function<float(nice::row_vector const&)>,
+                   std::function<nice::row_vector(nice::row_vector const&)>>;
+
+    using linear_set = std::tuple<nice::sparse_matrix,
+                                  nice::column_vector>;
+
+
+    std::optional<std::tuple<nice::matrix, nice::column_vector>>
+    active_constraints(nice::row_vector const& x,
+                       nice::linear_set const& linear_constraints,
+                       std::vector<nice::nonlinear_set> const& nonlinear_constraints);
+
+    template<typename F, typename d_F>
     inline nice::row_vector
     gradient_projection(F& function,
                         d_F& d_function,
-                        L_F& best_lambda,
                         float descent_rate,
                         size_t max_iterations,
                         nice::row_vector const& starting_point,
-                        nice::matrix const& A,
-                        nice::column_vector const& b,
-                        bool verbose = false,
-                        float kkt_threshold = 1e-5)
+                        linear_set const& linear_constraints,
+                        std::vector<nice::nonlinear_set> const& nonlinear_constraints,
+                        float kkt_threshold = 1e-5,
+                        nice::verboseness verbose = nice::verboseness::very_verbose)
     {
         auto start = std::chrono::steady_clock::now();
 
@@ -52,39 +82,53 @@ namespace nice
             if(nice::norm_l2(gradient) < kkt_threshold)
                 break;
 
-            if(verbose)
+            if(static_cast<size_t>(verbose) > 1u)
             {
                 std::cout << "iteration: " << iteration + 1
                           << " objective: " << objective 
                           << '\n';
             }
-
-            auto next_point = point - descent_rate * gradient;
-            auto active = nice::active_constraints(A, b, next_point);
-
-            if(!active)
+            if(verbose == nice::verboseness::log)
             {
-                point = next_point;
-                std::cout << "gradient: " <<  point << std::endl;
+                std::cout << std::endl << "point: " << point;
+                std::cout << "gradient: " << gradient;
             }
+
+            auto active = nice::active_constraints(point,
+                                                   linear_constraints,
+                                                   nonlinear_constraints);
+            if(!active)
+                point = point - descent_rate * gradient;
             else
             {
-                std::cout << "fuck" << std::endl;
-                auto P = nice::projection_matrix(active.value());
-                auto s = (-1) * gradient * blaze::trans(P);
+                auto [N, g] = active.value();
+                auto tangent = nice::tangent_subspace(N); 
+                auto s = blaze::evaluate((-1) * gradient * nice::projection_matrix(N, tangent));
+
+                auto a = nice::compute_alpha(descent_rate, objective, s, gradient);
+                auto projection_move = a * s;
+                auto restoration_move = (-1) * blaze::trans(g) * tangent;
+                auto update = projection_move + restoration_move;
+
+                point = point + update;
+
+                if(nice::is_parallel(update, gradient) < kkt_threshold)
+                    break;
 
                 if(nice::norm_l2(s) < kkt_threshold)
                     break;
 
-                float best = best_lambda(point, s);
-                float max = nice::max_lambda(A, b, point, s);
-                auto update = blaze::evaluate(std::min(best, max) * s);
-
-                if(nice::norm_l2(update) < kkt_threshold)
-                    break;
-
-                point = point + update;
-                std::cout << "projected grad: " << point << std::endl;
+                if(verbose == nice::verboseness::log)
+                {
+                    std::cout << "active: " << std::get<0>(active.value());
+                    std::cout << "a: " << a << std::endl;
+                    std::cout << "s: " << s;
+                    std::cout << "projection: " << projection_move;
+                    std::cout << "resto: " << restoration_move;
+                    std::cout << "kkt1: " << nice::norm_l2(s) << std::endl;
+                    std::cout << "kkt2: " << nice::is_parallel(update, gradient) << std::endl;
+                    std::cout << "update: " << update;
+                }
             }
         }
 
@@ -93,7 +137,7 @@ namespace nice
             std::chrono::duration_cast<
                 std::chrono::microseconds>(end - start);
 
-        if(verbose)
+        if(static_cast<size_t>(verbose) > 0)
         {
             std::cout << "time: " << duration.count() << "us" << std::endl;
             std::cout << "iterations: " << iteration + 1 << std::endl;

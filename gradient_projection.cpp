@@ -11,7 +11,7 @@ namespace nice
 {
     std::optional<std::tuple<nice::matrix, nice::column_vector>>
     active_constraints(nice::row_vector const& x,
-                       nice::linear_set const& linear_constraints,
+                       nice::linear_set<nice::sparse_matrix> const& linear_constraints,
                        std::vector<nice::nonlinear_set> const& nonlinear_constraints)
     {
         auto const& [A, b] = linear_constraints;
@@ -28,7 +28,7 @@ namespace nice
                       nonlinear_constraints.end(),
                       [&x, &idx, &nonlinear_tight_values](nice::nonlinear_set const& elem){
                           float value = std::get<0>(elem)(x);
-                          if(value <= std::numeric_limits<float>::epsilon())
+                          if(value >= std::numeric_limits<float>::epsilon())
                               nonlinear_tight_values.emplace_back(idx, value); 
                           ++idx;
                       });
@@ -37,7 +37,73 @@ namespace nice
         std::for_each(linear_constraint_values.begin(),
                       linear_constraint_values.end(),
                       [&idx, &linear_tight_values](float elem){
-                          if(elem <= std::numeric_limits<float>::epsilon())
+                          if(elem >= std::numeric_limits<float>::epsilon())
+                              linear_tight_values.emplace_back(idx, elem); 
+                          ++idx;
+                      });
+
+        if(linear_tight_values.empty() && nonlinear_tight_values.empty())
+            return {};
+        else
+        {
+            size_t columns = x.size();
+
+            auto tight_count = linear_tight_values.size() + nonlinear_tight_values.size();
+            auto active_set = nice::matrix(tight_count, columns);
+            auto active_value = nice::column_vector(tight_count);
+
+            size_t global_idx = 0;
+
+            for(auto const& i : nonlinear_tight_values)
+            {
+                auto const& grad = std::get<1>(nonlinear_constraints[i.first]);
+                blaze::row(active_set, global_idx) = grad(x);
+                active_value[global_idx] = i.second;
+                    
+                ++global_idx;
+            }
+
+
+            for(auto const& i : linear_tight_values)
+            {
+                blaze::row(active_set, global_idx) = blaze::row(A, i.first);
+                active_value[global_idx] = i.second;
+
+                ++global_idx;
+            }
+            return std::make_tuple(active_set, active_value);
+        }
+    }
+
+    std::optional<std::tuple<nice::matrix, nice::column_vector>>
+    active_constraints(nice::row_vector const& x,
+                       nice::linear_set<nice::matrix> const& linear_constraints,
+                       std::vector<nice::nonlinear_set> const& nonlinear_constraints)
+    {
+        auto const& [A, b] = linear_constraints;
+
+        auto linear_tight_values = std::vector<std::pair<size_t, float>>();
+        auto nonlinear_tight_values = std::vector<std::pair<size_t, float>>();
+        linear_tight_values.reserve(A.rows());
+        nonlinear_tight_values.reserve(nonlinear_constraints.size());
+
+        auto linear_constraint_values = blaze::evaluate(A * blaze::trans(x) - b);
+
+        size_t idx = 0;
+        std::for_each(nonlinear_constraints.begin(),
+                      nonlinear_constraints.end(),
+                      [&x, &idx, &nonlinear_tight_values](nice::nonlinear_set const& elem){
+                          float value = std::get<0>(elem)(x);
+                          if(value >= std::numeric_limits<float>::epsilon())
+                              nonlinear_tight_values.emplace_back(idx, value); 
+                          ++idx;
+                      });
+
+        idx = 0;
+        std::for_each(linear_constraint_values.begin(),
+                      linear_constraint_values.end(),
+                      [&idx, &linear_tight_values](float elem){
+                          if(elem >= std::numeric_limits<float>::epsilon())
                               linear_tight_values.emplace_back(idx, elem); 
                           ++idx;
                       });

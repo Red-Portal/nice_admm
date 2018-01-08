@@ -34,8 +34,8 @@ int main()
     float etab = 0.95;
     float xi = 1;
 
-    auto Eb_min = nice::row_vector(25, 0.1);
-    auto Eb_max = nice::row_vector(25, 3);
+    float Eb_min = 0.1;
+    float Eb_max = 3;
 
     float v_min = 0.95;
     float v_max = 1.05;
@@ -130,7 +130,7 @@ int main()
     auto Qg14 = 0.01f * Pg14;
     auto Qg15 = 0.01f * Pg15;
 
-    //blaze::Rand<nice::row_vector> randomizer{};
+//blaze::Rand<nice::row_vector> randomizer{};
 
     auto P2k = nice::row_vector(24, -1);
     auto Q2k = nice::row_vector(24, 0);
@@ -175,10 +175,10 @@ int main()
     start = std::chrono::steady_clock::now();
 
 
-    float descent_rate = 0.2;
-
-    // while(mean(blaze::eval(abs(abs(P_bus) - abs(Pk)))) > 0.001)
+// while(mean(blaze::eval(abs(abs(P_bus) - abs(Pk)))) > 0.001)
     {
+        float descent_rate = 0.1;
+
         auto [Pgk2, Qgk2] =
             LC_DG_optimization(descent_rate,
                                2000,
@@ -192,8 +192,7 @@ int main()
                                Qk,
                                mu2,
                                lambda2,
-                               std::numeric_limits<float>::epsilon(),
-                               false);
+                               std::numeric_limits<float>::epsilon());
 
         row(P_bus, 0) = Pgk2;
         row(Q_bus, 0) = Qgk2;
@@ -201,8 +200,8 @@ int main()
         end = std::chrono::steady_clock::now();
         duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
-        std::cout << "Pg2: " << Pgk2 << std::endl;
-        std::cout << "Qg2: " << Qgk2 << std::endl;
+        std::cout << "Pg2: " << Pgk2;
+        std::cout << "Qg2: " << Qgk2 << std::endl;;
 
 
         auto [Pbk8, Qbk8] =
@@ -212,13 +211,15 @@ int main()
                                      gammab,
                                      Pk,
                                      Qk,
+                                     Eb8,
+                                     Eb_min,
+                                     Eb_max,
                                      mu8,
                                      lambda8,
-                                     std::numeric_limits<float>::epsilon(),
-                                     true);
+                                     std::numeric_limits<float>::epsilon());
 
-        row(P_bus, 1) = Pgk8;
-        row(Q_bus, 1) = Qgk8;
+        row(P_bus, 1) = Pbk8;
+        row(Q_bus, 1) = Qbk8;
 
         std::cout << "time: " << duration.count() << "us" << std::endl;
     }

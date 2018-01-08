@@ -7,10 +7,11 @@
 #include <algorithm>
 
 #include "utility.hpp"
+#include <coin/IpTNLP.hpp>
+#include <coin/IpIpoptApplication.hpp>
 
 std::tuple<nice::row_vector, nice::row_vector>
-LC_DG_optimization(float descent_rate,
-                   size_t max_iteration,
+LC_DG_optimization(Ipopt::IpoptApplication& app,
                    float alphag,
                    float betag,
                    float cg,
@@ -20,9 +21,7 @@ LC_DG_optimization(float descent_rate,
                    blaze::DynamicMatrix<float> const& Pk,
                    blaze::DynamicMatrix<float> const& Qk,
                    nice::row_vector const& mu2,
-                   nice::row_vector const& lambda2,
-                   float kkt_threshold = 0.0001,
-                   bool verbose = true);
+                   nice::row_vector const& lambda2);
 
 std::tuple<nice::row_vector, nice::row_vector>
 LC_DS_first_optimization(float descent_rate,
@@ -31,9 +30,11 @@ LC_DS_first_optimization(float descent_rate,
                          float gammab,
                          blaze::DynamicMatrix<float> const& Pk,
                          blaze::DynamicMatrix<float> const& Qk,
+                         nice::row_vector& Eb8,
+                         float Eb_min,
+                         float Eb_max,
                          nice::row_vector const& mu8,
                          nice::row_vector const& lambda8,
-                         float kkt_threshold = 0.0001,
-                         bool verbose = true);
+                         float kkt_threshold = 0.0001);
 
 #endif

@@ -55,7 +55,7 @@ namespace nice
 
     template<typename VT, bool TF>
     inline decltype(auto)
-    power(blaze::Vector<VT, TF> const& vec)
+    power( blaze::DenseVector<VT, TF> const& vec )
     {
         return vec * vec;
     }

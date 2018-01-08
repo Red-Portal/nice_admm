@@ -16,16 +16,19 @@ namespace nice
     inline blaze::DynamicMatrix<float>
     tangent_subspace(nice::matrix const& N)
     {
+        //std::cout << "N: " << N << std::endl;
         return  inv(N * trans(N)) * N;
     }
 
     inline float
-    compute_alpha(float rate,
+    compute_alpha(float gamma,
+                  float max_alpha,
                   float objective_value, 
                   nice::row_vector const& s,
                   nice::row_vector const& gradient)
     {
-        return ((-1) * rate * objective_value) / blaze::dot(gradient, s);
+        float alpha = ((-1) * gamma * objective_value) / blaze::dot(gradient, s);
+        return std::min(alpha, max_alpha);
     }
 
     inline float
@@ -44,27 +47,42 @@ namespace nice
         return id - blaze::trans(N) * tangent;
     }
 
+    inline nice::matrix
+    projection_matrix(nice::matrix const& N,
+                      nice::matrix const& tangent)
+    {
+        auto id = blaze::IdentityMatrix<float, blaze::rowMajor>(N.columns());
+        return id - blaze::trans(N) * tangent;
+    }
+
     using nonlinear_set =
         std::tuple<std::function<float(nice::row_vector const&)>,
                    std::function<nice::row_vector(nice::row_vector const&)>>;
 
-    using linear_set = std::tuple<nice::sparse_matrix,
-                                  nice::column_vector>;
+    template<typename MatrixType>
+    using linear_set = std::tuple<MatrixType, nice::column_vector>;
 
 
     std::optional<std::tuple<nice::matrix, nice::column_vector>>
     active_constraints(nice::row_vector const& x,
-                       nice::linear_set const& linear_constraints,
+                       nice::linear_set<nice::sparse_matrix> const& linear_constraints,
                        std::vector<nice::nonlinear_set> const& nonlinear_constraints);
 
-    template<typename F, typename d_F>
+    std::optional<std::tuple<nice::matrix, nice::column_vector>>
+    active_constraints(nice::row_vector const& x,
+                       nice::linear_set<nice::matrix> const& linear_constraints,
+                       std::vector<nice::nonlinear_set> const& nonlinear_constraints);
+
+    template<typename F, typename d_F, typename MatrixType>
     inline nice::row_vector
     gradient_projection(F& function,
                         d_F& d_function,
                         float descent_rate,
                         size_t max_iterations,
+                        float gamma,
+                        float max_alpha,
                         nice::row_vector const& starting_point,
-                        linear_set const& linear_constraints,
+                        linear_set<MatrixType> const& linear_constraints,
                         std::vector<nice::nonlinear_set> const& nonlinear_constraints,
                         float kkt_threshold = 1e-5,
                         nice::verboseness verbose = nice::verboseness::very_verbose)
@@ -84,14 +102,16 @@ namespace nice
 
             if(static_cast<size_t>(verbose) > 1u)
             {
-                std::cout << "iteration: " << iteration + 1
+                std::cout << '\n'
+                          << "iteration: " << iteration + 1
                           << " objective: " << objective 
-                          << '\n';
+                          << std::endl;
             }
             if(verbose == nice::verboseness::log)
             {
-                std::cout << std::endl << "point: " << point;
+                std::cout << "point: " << point;
                 std::cout << "gradient: " << gradient;
+                std::cout << "update: " << descent_rate * gradient;
             }
 
             auto active = nice::active_constraints(point,
@@ -105,7 +125,7 @@ namespace nice
                 auto tangent = nice::tangent_subspace(N); 
                 auto s = blaze::evaluate((-1) * gradient * nice::projection_matrix(N, tangent));
 
-                auto a = nice::compute_alpha(descent_rate, objective, s, gradient);
+                auto a = nice::compute_alpha(gamma, max_alpha, objective, s, gradient);
                 auto projection_move = a * s;
                 auto restoration_move = (-1) * blaze::trans(g) * tangent;
                 auto update = projection_move + restoration_move;
@@ -127,7 +147,7 @@ namespace nice
                     std::cout << "resto: " << restoration_move;
                     std::cout << "kkt1: " << nice::norm_l2(s) << std::endl;
                     std::cout << "kkt2: " << nice::is_parallel(update, gradient) << std::endl;
-                    std::cout << "update: " << update;
+                    std::cout << "update: " << update << std::endl;;
                 }
             }
         }
